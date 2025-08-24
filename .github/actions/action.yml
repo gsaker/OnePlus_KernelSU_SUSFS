@@ -264,56 +264,53 @@ runs:
         # Mountify Support
         echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
         echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
-        
-    - name: Add Minimal KVM Console Support
+    - name: Force Enable KVM ARM Host Support
       shell: bash
       run: |
         echo "Changing to configuration directory: $CONFIG..."
         cd "$CONFIG/kernel_platform"
         
-        echo "Adding minimal KVM support for console VMs only..."
+        echo "Force-enabling KVM ARM host support through multiple methods..."
         
         DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
         
-        # Absolute bare minimum for KVM console VM
+        # Method 1: Remove any conflicting "is not set" entries first
+        sed -i '/# CONFIG_KVM_ARM_HOST is not set/d' "$DEFCONFIG_FILE"
+        sed -i '/# CONFIG_VIRTIO_BLK is not set/d' "$DEFCONFIG_FILE"
+        sed -i '/# CONFIG_VIRTIO_NET is not set/d' "$DEFCONFIG_FILE"
+        sed -i '/# CONFIG_VIRTIO_PCI is not set/d' "$DEFCONFIG_FILE"
+        
+        # Method 2: Add our configs at the end (override anything earlier)
+        echo "" >> "$DEFCONFIG_FILE"
+        echo "# ========== FORCED KVM SUPPORT ==========" >> "$DEFCONFIG_FILE"
         echo "CONFIG_VIRTUALIZATION=y" >> "$DEFCONFIG_FILE"
         echo "CONFIG_KVM=y" >> "$DEFCONFIG_FILE"
         echo "CONFIG_KVM_ARM_HOST=y" >> "$DEFCONFIG_FILE"
-        
-        # Basic VirtIO support (needed for console and minimal I/O)
+        echo "CONFIG_KVM_MMIO=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_KVM_ARM_PMU=y" >> "$DEFCONFIG_FILE"
+        echo "" >> "$DEFCONFIG_FILE"
+        echo "# VirtIO drivers" >> "$DEFCONFIG_FILE"
         echo "CONFIG_VIRTIO=y" >> "$DEFCONFIG_FILE"
         echo "CONFIG_VIRTIO_MMIO=y" >> "$DEFCONFIG_FILE"
         echo "CONFIG_VIRTIO_CONSOLE=y" >> "$DEFCONFIG_FILE"
-        
-        # TUN/TAP for basic networking (optional but useful)
+        echo "CONFIG_VIRTIO_BLK=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_VIRTIO_NET=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_VIRTIO_PCI=y" >> "$DEFCONFIG_FILE"
+        echo "" >> "$DEFCONFIG_FILE"
+        echo "# Networking" >> "$DEFCONFIG_FILE"
         echo "CONFIG_TUN=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_TAP=y" >> "$DEFCONFIG_FILE"
+        echo "# ========== END FORCED KVM ==========" >> "$DEFCONFIG_FILE"
         
-        echo "Minimal KVM console support added!"
-        echo "Added only 6 essential configs for basic VM console access"
-    - name: Fix KVM Protected Mode
-      shell: bash
-      run: |
-        echo "Changing to configuration directory: $CONFIG..."
-        cd "$CONFIG/kernel_platform"
+        echo "KVM configs force-added to defconfig"
         
-        echo "Fixing KVM protected mode to enable normal virtualization..."
-        
-        DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
-        
-        # Disable protected KVM mode configurations
-        echo "# CONFIG_KVM_ARM_PROTECTED_MODE is not set" >> "$DEFCONFIG_FILE"
-        echo "# CONFIG_PROTECTED_VIRTUALIZATION_GUEST is not set" >> "$DEFCONFIG_FILE"
-        
-        # Ensure we have normal KVM enabled  
-        echo "CONFIG_KVM=y" >> "$DEFCONFIG_FILE"
-        echo "CONFIG_KVM_ARM_HOST=y" >> "$DEFCONFIG_FILE"
-        
-        # Remove any protected mode settings from command line
-        if grep -q "CONFIG_CMDLINE=" "$DEFCONFIG_FILE"; then
-          sed -i 's/kvm-arm\.mode=protected//g' "$DEFCONFIG_FILE"
+        # Method 3: Also add to any vendor-specific configs if they exist
+        if [ -f "./common/arch/arm64/configs/vendor/gki_defconfig" ]; then
+          echo "Also adding to vendor defconfig..."
+          echo "CONFIG_KVM_ARM_HOST=y" >> "./common/arch/arm64/configs/vendor/gki_defconfig"
         fi
         
-        echo "KVM protected mode disabled - normal KVM should be available after rebuild"
+        echo "KVM ARM host support force-enabled!"
     - name: Add BBR v1 Support
       shell: bash
       run: |
