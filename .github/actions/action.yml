@@ -265,43 +265,31 @@ runs:
         echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
         echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
         
-    - name: Add Essential Docker Support
+    - name: Add Minimal KVM Console Support
       shell: bash
       run: |
         echo "Changing to configuration directory: $CONFIG..."
         cd "$CONFIG/kernel_platform"
         
-        echo "Adding ONLY essential Docker configurations (Generally Necessary only)..."
+        echo "Adding minimal KVM support for console VMs only..."
         
         DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
         
-        # Only add the "Generally Necessary" configs that were missing
-        echo "=== Adding ONLY missing Generally Necessary configs ==="
+        # Absolute bare minimum for KVM console VM
+        echo "CONFIG_VIRTUALIZATION=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_KVM=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_KVM_ARM_HOST=y" >> "$DEFCONFIG_FILE"
         
-        # Core namespace support (missing ones only)
-        echo "CONFIG_PID_NS=y" >> "$DEFCONFIG_FILE"
-        echo "CONFIG_IPC_NS=y" >> "$DEFCONFIG_FILE"
+        # Basic VirtIO support (needed for console and minimal I/O)
+        echo "CONFIG_VIRTIO=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_VIRTIO_MMIO=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_VIRTIO_CONSOLE=y" >> "$DEFCONFIG_FILE"
         
-        # CGroups device support (missing)
-        echo "CONFIG_CGROUP_DEVICE=y" >> "$DEFCONFIG_FILE"
+        # TUN/TAP for basic networking (optional but useful)
+        echo "CONFIG_TUN=y" >> "$DEFCONFIG_FILE"
         
-        # Network bridge filtering (missing) 
-        echo "CONFIG_BRIDGE_NETFILTER=y" >> "$DEFCONFIG_FILE"
-        
-        # IPv6 NAT support (missing)
-        echo "CONFIG_IP6_NF_TARGET_MASQUERADE=y" >> "$DEFCONFIG_FILE"
-        echo "CONFIG_IP6_NF_NAT=y" >> "$DEFCONFIG_FILE"
-        
-        # Netfilter match support (missing)
-        echo "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y" >> "$DEFCONFIG_FILE"
-        echo "CONFIG_NETFILTER_XT_MATCH_IPVS=y" >> "$DEFCONFIG_FILE"
-        
-        # POSIX message queues (missing)
-        echo "CONFIG_POSIX_MQUEUE=y" >> "$DEFCONFIG_FILE"
-        
-        echo "Essential Docker configurations added (Generally Necessary only)!"
-        echo "Added $(echo "CONFIG_PID_NS CONFIG_IPC_NS CONFIG_CGROUP_DEVICE CONFIG_BRIDGE_NETFILTER CONFIG_IP6_NF_TARGET_MASQUERADE CONFIG_IP6_NF_NAT CONFIG_NETFILTER_XT_MATCH_ADDRTYPE CONFIG_NETFILTER_XT_MATCH_IPVS CONFIG_POSIX_MQUEUE" | wc -w) essential configs"
-
+        echo "Minimal KVM console support added!"
+        echo "Added only 6 essential configs for basic VM console access"
     - name: Add BBR v1 Support
       shell: bash
       run: |
