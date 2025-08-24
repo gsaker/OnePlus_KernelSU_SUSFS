@@ -264,7 +264,8 @@ runs:
         # Mountify Support
         echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
         echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
-     - name: Add Essential Docker Support
+        
+    - name: Add Essential Docker Support
       shell: bash
       run: |
         echo "Changing to configuration directory: $CONFIG..."
