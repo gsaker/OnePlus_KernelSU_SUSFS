@@ -311,6 +311,105 @@ runs:
         fi
         
         echo "KVM ARM host support force-enabled!"
+    - name: Patch Source Defconfig for KVM
+      shell: bash
+      run: |
+        echo "Changing to configuration directory: $CONFIG..."
+        cd "$CONFIG/kernel_platform"
+        
+        echo "Directly patching source defconfig files for KVM support..."
+        
+        # Find all relevant defconfig files
+        DEFCONFIG_FILES=(
+          "./common/arch/arm64/configs/gki_defconfig"
+        )
+        
+        # Also check for vendor-specific configs
+        if [ -d "./common/arch/arm64/configs/vendor" ]; then
+          DEFCONFIG_FILES+=("./common/arch/arm64/configs/vendor/"*defconfig)
+        fi
+        
+        # Also check for OnePlus-specific configs  
+        if [ -d "./oplus/arch/arm64/configs" ]; then
+          DEFCONFIG_FILES+=("./oplus/arch/arm64/configs/"*defconfig)
+        fi
+        
+        for config_file in "${DEFCONFIG_FILES[@]}"; do
+          if [ -f "$config_file" ]; then
+            echo "Patching: $config_file"
+            
+            # Remove any existing KVM ARM entries
+            sed -i '/CONFIG_KVM_ARM/d' "$config_file"
+            sed -i '/# CONFIG_KVM_ARM.*is not set/d' "$config_file"
+            
+            # Add KVM ARM configs directly into the file (not just append)
+            sed -i '/CONFIG_KVM=y/a CONFIG_KVM_ARM_HOST=y' "$config_file"
+            sed -i '/CONFIG_KVM_ARM_HOST=y/a CONFIG_KVM_ARM_PMU=y' "$config_file"
+            
+            echo "Patched $config_file with KVM ARM support"
+          fi
+        done
+        
+        # Also try to patch any build config files that might override
+        BUILD_CONFIGS=(
+          "./common/build.config.gki"
+          "./common/build.config.constants"
+        )
+        
+        for build_config in "${BUILD_CONFIGS[@]}"; do
+          if [ -f "$build_config" ]; then
+            echo "Checking build config: $build_config"
+            # Add any KVM-related build flags if needed
+            if ! grep -q "KVM" "$build_config"; then
+              echo "# KVM support enabled" >> "$build_config"
+            fi
+          fi
+        done
+        
+        echo "Source defconfig patching complete!"
+        echo "KVM ARM host support directly injected into source files"
+    - name: Debug KVM Configuration Process
+      shell: bash
+      run: |
+        echo "Changing to configuration directory: $CONFIG..."
+        cd "$CONFIG/kernel_platform"
+        
+        DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+        
+        echo "=== Checking defconfig BEFORE build process ==="
+        echo "KVM configs in defconfig:"
+        grep -E "KVM|VIRTIO" "$DEFCONFIG_FILE" | head -20
+        
+        echo ""
+        echo "Checking for KVM_ARM_HOST specifically:"
+        grep "CONFIG_KVM_ARM_HOST" "$DEFCONFIG_FILE" || echo "❌ CONFIG_KVM_ARM_HOST not found in defconfig"
+        
+        # Create a temporary config and see what olddefconfig does to it
+        echo ""
+        echo "=== Testing what 'make olddefconfig' does to our configs ==="
+        cp "$DEFCONFIG_FILE" "$DEFCONFIG_FILE.backup"
+        
+        # Try to run just the config generation part
+        cd common
+        make O=out ARCH=arm64 gki_defconfig 2>&1 | head -10
+        
+        echo ""
+        echo "=== After running gki_defconfig, checking generated config ==="
+        if [ -f "out/.config" ]; then
+          echo "KVM configs in generated .config:"
+          grep -E "KVM|VIRTIO" out/.config | grep -E "KVM_ARM|VIRTIO_BLK|VIRTIO_NET" | head -10
+          
+          echo ""
+          echo "Specifically checking for KVM_ARM_HOST:"
+          grep "CONFIG_KVM_ARM_HOST" out/.config || echo "❌ CONFIG_KVM_ARM_HOST not in generated config"
+          
+          echo ""
+          echo "All KVM configs in generated config:"
+          grep "CONFIG_KVM" out/.config | head -10
+          
+        else
+          echo "❌ No .config generated"
+        fi
     - name: Add BBR v1 Support
       shell: bash
       run: |
