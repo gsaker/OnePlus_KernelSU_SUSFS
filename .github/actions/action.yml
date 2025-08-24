@@ -264,6 +264,79 @@ runs:
         # Mountify Support
         echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
         echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
+    - name: Add Docker Containerization Support
+      shell: bash
+      run: |
+        echo "Changing to configuration directory: $CONFIG..."
+        cd "$CONFIG/kernel_platform"
+        
+        echo "Adding Docker containerization support to gki_defconfig..."
+        
+        DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+        
+        # Core containerization support (Generally Necessary)
+        echo "CONFIG_NAMESPACES=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NET_NS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_PID_NS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IPC_NS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_UTS_NS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_USER_NS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_TIME_NS=y" >> "$DEFCONFIG_FILE"
+        
+        # IPC Support (Required)
+        echo "CONFIG_POSIX_MQUEUE=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_SYSVIPC=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_SYSVIPC_SYSCTL=y" >> "$DEFCONFIG_FILE"
+        
+        # CGroups support (Critical for Docker)
+        echo "CONFIG_CGROUPS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_CGROUP_DEVICE=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_CGROUP_PIDS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_CGROUP_PERF=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_CGROUP_HUGETLB=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_CFS_BANDWIDTH=y" >> "$DEFCONFIG_FILE"
+        
+        # Network CGroups
+        echo "CONFIG_NET_CLS_CGROUP=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_CGROUP_NET_CLASSID=y" >> "$DEFCONFIG_FILE"
+        
+        # Netfilter support (Missing critical ones)
+        echo "CONFIG_BRIDGE_NETFILTER=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IP6_NF_NAT=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IP6_NF_TARGET_MASQUERADE=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NETFILTER_XT_MATCH_IPVS=y" >> "$DEFCONFIG_FILE"
+        
+        # IPVS load balancing (All missing)
+        echo "CONFIG_IP_VS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IP_VS_NFCT=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IP_VS_PROTO_TCP=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IP_VS_PROTO_UDP=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IP_VS_RR=y" >> "$DEFCONFIG_FILE"
+        
+        # NFTables (Modern netfilter - all missing)
+        echo "CONFIG_NF_TABLES=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NFT_CT=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NFT_FIB_IPV4=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NFT_FIB_IPV6=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NFT_FIB=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NFT_MASQ=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_NFT_NAT=y" >> "$DEFCONFIG_FILE"
+        
+        # Container networking (Missing)
+        echo "CONFIG_MACVLAN=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_IPVLAN=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_VXLAN=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_BRIDGE_VLAN_FILTERING=y" >> "$DEFCONFIG_FILE"
+        
+        # AppArmor security (Missing)
+        echo "CONFIG_SECURITY_APPARMOR=y" >> "$DEFCONFIG_FILE"
+        
+        # BTRFS filesystem (Missing)
+        echo "CONFIG_BTRFS_FS=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_BTRFS_FS_POSIX_ACL=y" >> "$DEFCONFIG_FILE"
+        
+        echo "Docker support configurations added successfully!"
 
     - name: Add BBR v1 Support
       shell: bash
