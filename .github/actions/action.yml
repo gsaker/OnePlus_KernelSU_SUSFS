@@ -290,6 +290,30 @@ runs:
         
         echo "Minimal KVM console support added!"
         echo "Added only 6 essential configs for basic VM console access"
+    - name: Fix KVM Protected Mode
+      shell: bash
+      run: |
+        echo "Changing to configuration directory: $CONFIG..."
+        cd "$CONFIG/kernel_platform"
+        
+        echo "Fixing KVM protected mode to enable normal virtualization..."
+        
+        DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+        
+        # Disable protected KVM mode configurations
+        echo "# CONFIG_KVM_ARM_PROTECTED_MODE is not set" >> "$DEFCONFIG_FILE"
+        echo "# CONFIG_PROTECTED_VIRTUALIZATION_GUEST is not set" >> "$DEFCONFIG_FILE"
+        
+        # Ensure we have normal KVM enabled  
+        echo "CONFIG_KVM=y" >> "$DEFCONFIG_FILE"
+        echo "CONFIG_KVM_ARM_HOST=y" >> "$DEFCONFIG_FILE"
+        
+        # Remove any protected mode settings from command line
+        if grep -q "CONFIG_CMDLINE=" "$DEFCONFIG_FILE"; then
+          sed -i 's/kvm-arm\.mode=protected//g' "$DEFCONFIG_FILE"
+        fi
+        
+        echo "KVM protected mode disabled - normal KVM should be available after rebuild"
     - name: Add BBR v1 Support
       shell: bash
       run: |
