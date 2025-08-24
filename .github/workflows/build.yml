@@ -248,173 +248,390 @@ jobs:
           # ========== DOCKER SUPPORT CONFIGURATIONS ==========
           echo "Adding Docker containerization support..."
           
-          # Core containerization support (Generally Necessary)
-          echo "CONFIG_NAMESPACES=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_PID_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IPC_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_UTS_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_USER_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TIME_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # First, let's check what configs are available in the kernel
+          DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+          echo "Current defconfig location: $DEFCONFIG_FILE"
           
-          # POSIX message queues and System V IPC (Generally Necessary)
-          echo "CONFIG_POSIX_MQUEUE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_SYSVIPC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_SYSVIPC_SYSCTL=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Function to safely add config if it doesn't exist
+          add_config() {
+            local config="$1"
+            if ! grep -q "^$config" "$DEFCONFIG_FILE" && ! grep -q "^# $config is not set" "$DEFCONFIG_FILE"; then
+              echo "$config" >> "$DEFCONFIG_FILE"
+              echo "✓ Added: $config"
+            else
+              # If it exists but is disabled, enable it
+              if grep -q "^# $config is not set" "$DEFCONFIG_FILE"; then
+                sed -i "s/^# $config is not set/$config=y/" "$DEFCONFIG_FILE"
+                echo "✓ Enabled: $config"
+              else
+                echo "Already exists: $config"
+              fi
+            fi
+          }
           
-          # CGroups support (essential for Docker - Generally Necessary)
-          echo "CONFIG_CGROUPS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_CPUACCT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_DEVICE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_FREEZER=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_SCHED=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_PIDS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_RDMA=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_PERF=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_BPF=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_MISC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_HUGETLB=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CPUSETS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Core containerization support (CRITICAL - these are missing)
+          echo "=== Adding Core Namespace Support ==="
+          add_config "CONFIG_NAMESPACES=y"
+          add_config "CONFIG_NET_NS=y"
+          add_config "CONFIG_PID_NS=y"
+          add_config "CONFIG_IPC_NS=y"
+          add_config "CONFIG_UTS_NS=y"
+          add_config "CONFIG_USER_NS=y"
+          add_config "CONFIG_TIME_NS=y"
+          
+          # POSIX and SysV IPC (MISSING)
+          echo "=== Adding IPC Support ==="
+          add_config "CONFIG_POSIX_MQUEUE=y"
+          add_config "CONFIG_SYSVIPC=y"
+          add_config "CONFIG_SYSVIPC_SYSCTL=y"
+          
+          # CGroups support (some missing)
+          echo "=== Adding CGroups Support ==="
+          add_config "CONFIG_CGROUPS=y"
+          add_config "CONFIG_CGROUP_CPUACCT=y"
+          add_config "CONFIG_CGROUP_DEVICE=y"
+          add_config "CONFIG_CGROUP_FREEZER=y"
+          add_config "CONFIG_CGROUP_SCHED=y"
+          add_config "CONFIG_CGROUP_PIDS=y"
+          add_config "CONFIG_CGROUP_RDMA=y"
+          add_config "CONFIG_CGROUP_PERF=y"
+          add_config "CONFIG_CGROUP_BPF=y"
+          add_config "CONFIG_CGROUP_MISC=y"
+          add_config "CONFIG_CGROUP_HUGETLB=y"
+          add_config "CONFIG_CPUSETS=y"
           
           # Memory control groups
-          echo "CONFIG_MEMCG=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MEMCG_SWAP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MEMCG_KMEM=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "=== Adding Memory CGroups ==="
+          add_config "CONFIG_MEMCG=y"
+          add_config "CONFIG_MEMCG_SWAP=y"
+          add_config "CONFIG_MEMCG_KMEM=y"
           
           # Block I/O control groups
-          echo "CONFIG_BLK_CGROUP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BLK_DEV_THROTTLING=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BLK_WBT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BLK_WBT_MQ=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "=== Adding Block I/O CGroups ==="
+          add_config "CONFIG_BLK_CGROUP=y"
+          add_config "CONFIG_BLK_DEV_THROTTLING=y"
+          add_config "CONFIG_BLK_WBT=y"
+          add_config "CONFIG_BLK_WBT_MQ=y"
           
-          # CPU scheduling control groups (Optional but recommended)
-          echo "CONFIG_CFS_BANDWIDTH=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_FAIR_GROUP_SCHED=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_RT_GROUP_SCHED=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # CPU scheduling control groups (MISSING)
+          echo "=== Adding CPU Scheduling CGroups ==="
+          add_config "CONFIG_CFS_BANDWIDTH=y"
+          add_config "CONFIG_FAIR_GROUP_SCHED=y"
+          add_config "CONFIG_RT_GROUP_SCHED=y"
           
-          # Network control groups
-          echo "CONFIG_NET_CLS_CGROUP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NETPRIO_CGROUP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_NET_PRIO=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CGROUP_NET_CLASSID=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Network control groups (some missing)
+          echo "=== Adding Network CGroups ==="
+          add_config "CONFIG_NET_CLS_CGROUP=y"
+          add_config "CONFIG_NETPRIO_CGROUP=y"
+          add_config "CONFIG_CGROUP_NET_PRIO=y"
+          add_config "CONFIG_CGROUP_NET_CLASSID=y"
           
-          # Security and capabilities (Generally Necessary)
-          echo "CONFIG_KEYS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_SECCOMP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_SECCOMP_FILTER=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Security and capabilities
+          echo "=== Adding Security Support ==="
+          add_config "CONFIG_KEYS=y"
+          add_config "CONFIG_SECCOMP=y"
+          add_config "CONFIG_SECCOMP_FILTER=y"
           
-          # Virtual networking (Generally Necessary)
-          echo "CONFIG_VETH=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BRIDGE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BRIDGE_NETFILTER=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BRIDGE_NF_EBTABLES=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BRIDGE_EBT_BROUTE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BRIDGE_VLAN_FILTERING=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Virtual networking (some missing)
+          echo "=== Adding Virtual Networking ==="
+          add_config "CONFIG_VETH=y"
+          add_config "CONFIG_BRIDGE=y"
+          add_config "CONFIG_BRIDGE_NETFILTER=y"
+          add_config "CONFIG_BRIDGE_NF_EBTABLES=y"
+          add_config "CONFIG_BRIDGE_EBT_BROUTE=y"
+          add_config "CONFIG_BRIDGE_VLAN_FILTERING=y"
           
           # Network traffic control and filtering
-          echo "CONFIG_NET_SCHED=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_SCH_HTB=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_SCH_INGRESS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_CLS_ACT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_ACT_POLICE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_ACT_GACT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_ACT_MIRRED=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "=== Adding Network Traffic Control ==="
+          add_config "CONFIG_NET_SCHED=y"
+          add_config "CONFIG_NET_SCH_HTB=y"
+          add_config "CONFIG_NET_SCH_INGRESS=y"
+          add_config "CONFIG_NET_CLS_ACT=y"
+          add_config "CONFIG_NET_ACT_POLICE=y"
+          add_config "CONFIG_NET_ACT_GACT=y"
+          add_config "CONFIG_NET_ACT_MIRRED=y"
           
-          # IP tables and netfilter support (Generally Necessary)
-          echo "CONFIG_NETFILTER=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_CONNTRACK=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_CONNTRACK_MARK=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_CONNTRACK_FTP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_CONNTRACK_TFTP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NETFILTER_XT_MATCH_CONNTRACK=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NETFILTER_XT_MATCH_IPVS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_IPTABLES=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_FILTER=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_TARGET_REJECT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_TARGET_MASQUERADE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_TARGET_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_NAT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_MANGLE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_RAW=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_NAT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_NAT_FTP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_NAT_TFTP=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # IP tables and netfilter support (many missing)
+          echo "=== Adding Netfilter Support ==="
+          add_config "CONFIG_NETFILTER=y"
+          add_config "CONFIG_NF_CONNTRACK=y"
+          add_config "CONFIG_NF_CONNTRACK_MARK=y"
+          add_config "CONFIG_NF_CONNTRACK_FTP=y"
+          add_config "CONFIG_NF_CONNTRACK_TFTP=y"
+          add_config "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y"
+          add_config "CONFIG_NETFILTER_XT_MATCH_CONNTRACK=y"
+          add_config "CONFIG_NETFILTER_XT_MATCH_IPVS=y"
+          add_config "CONFIG_IP_NF_IPTABLES=y"
+          add_config "CONFIG_IP_NF_FILTER=y"
+          add_config "CONFIG_IP_NF_TARGET_REJECT=y"
+          add_config "CONFIG_IP_NF_TARGET_MASQUERADE=y"
+          add_config "CONFIG_IP_NF_TARGET_REDIRECT=y"
+          add_config "CONFIG_IP_NF_NAT=y"
+          add_config "CONFIG_IP_NF_MANGLE=y"
+          add_config "CONFIG_IP_NF_RAW=y"
+          add_config "CONFIG_NF_NAT=y"
+          add_config "CONFIG_NF_NAT_FTP=y"
+          add_config "CONFIG_NF_NAT_TFTP=y"
           
-          # IPv6 support (Generally Necessary)
-          echo "CONFIG_IP6_NF_IPTABLES=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_FILTER=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_TARGET_REJECT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_MANGLE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_NAT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_TARGET_MASQUERADE=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_RAW=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # IPv6 support (some missing)
+          echo "=== Adding IPv6 Support ==="
+          add_config "CONFIG_IP6_NF_IPTABLES=y"
+          add_config "CONFIG_IP6_NF_FILTER=y"
+          add_config "CONFIG_IP6_NF_TARGET_REJECT=y"
+          add_config "CONFIG_IP6_NF_MANGLE=y"
+          add_config "CONFIG_IP6_NF_NAT=y"
+          add_config "CONFIG_IP6_NF_TARGET_MASQUERADE=y"
+          add_config "CONFIG_IP6_NF_RAW=y"
           
-          # IPVS support (Optional - for load balancing)
-          echo "CONFIG_IP_VS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_VS_NFCT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_VS_PROTO_TCP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_VS_PROTO_UDP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_VS_RR=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # IPVS support (all missing)
+          echo "=== Adding IPVS Support ==="
+          add_config "CONFIG_IP_VS=y"
+          add_config "CONFIG_IP_VS_NFCT=y"
+          add_config "CONFIG_IP_VS_PROTO_TCP=y"
+          add_config "CONFIG_IP_VS_PROTO_UDP=y"
+          add_config "CONFIG_IP_VS_RR=y"
           
-          # Overlay filesystem (Docker's preferred storage driver)
-          echo "CONFIG_OVERLAY_FS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_OVERLAY_FS_REDIRECT_DIR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_OVERLAY_FS_REDIRECT_ALWAYS_FOLLOW=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_OVERLAY_FS_INDEX=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_OVERLAY_FS_XINO_AUTO=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_OVERLAY_FS_METACOPY=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Overlay filesystem (should be present)
+          echo "=== Adding Filesystem Support ==="
+          add_config "CONFIG_OVERLAY_FS=y"
+          add_config "CONFIG_OVERLAY_FS_REDIRECT_DIR=y"
+          add_config "CONFIG_OVERLAY_FS_REDIRECT_ALWAYS_FOLLOW=y"
+          add_config "CONFIG_OVERLAY_FS_INDEX=y"
+          add_config "CONFIG_OVERLAY_FS_XINO_AUTO=y"
+          add_config "CONFIG_OVERLAY_FS_METACOPY=y"
           
-          # Additional filesystems that Docker may use
-          echo "CONFIG_EXT4_FS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_EXT4_FS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_EXT4_FS_SECURITY=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BTRFS_FS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BTRFS_FS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Additional filesystems
+          add_config "CONFIG_EXT4_FS=y"
+          add_config "CONFIG_EXT4_FS_POSIX_ACL=y"
+          add_config "CONFIG_EXT4_FS_SECURITY=y"
+          add_config "CONFIG_BTRFS_FS=y"
+          add_config "CONFIG_BTRFS_FS_POSIX_ACL=y"
           
-          # Device mapper support (for Docker storage drivers)
-          echo "CONFIG_MD=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BLK_DEV_DM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_DM_THIN_PROVISIONING=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_DM_SNAPSHOT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Device mapper support
+          echo "=== Adding Device Mapper Support ==="
+          add_config "CONFIG_MD=y"
+          add_config "CONFIG_BLK_DEV_DM=y"
+          add_config "CONFIG_DM_THIN_PROVISIONING=y"
+          add_config "CONFIG_DM_SNAPSHOT=y"
           
-          # AppArmor LSM (Linux Security Module) - Optional but recommended
-          echo "CONFIG_SECURITY_APPARMOR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_DEFAULT_SECURITY_APPARMOR=n" >> ./common/arch/arm64/configs/gki_defconfig
+          # AppArmor LSM (missing)
+          echo "=== Adding Security Modules ==="
+          add_config "CONFIG_SECURITY_APPARMOR=y"
+          # Don't set as default to avoid conflicts with SELinux
+          add_config "CONFIG_DEFAULT_SECURITY_APPARMOR=n"
           
-          # NFTables support (Optional - modern netfilter)
-          echo "CONFIG_NF_TABLES=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NFT_CT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NFT_FIB_IPV4=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NFT_FIB_IPV6=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NFT_FIB=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NFT_MASQ=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NFT_NAT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # NFTables support (all missing)
+          echo "=== Adding NFTables Support ==="
+          add_config "CONFIG_NF_TABLES=y"
+          add_config "CONFIG_NFT_CT=y"
+          add_config "CONFIG_NFT_FIB_IPV4=y"
+          add_config "CONFIG_NFT_FIB_IPV6=y"
+          add_config "CONFIG_NFT_FIB=y"
+          add_config "CONFIG_NFT_MASQ=y"
+          add_config "CONFIG_NFT_NAT=y"
           
-          # Additional network features for container networking
-          echo "CONFIG_MACVLAN=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MACVTAP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IPVLAN=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_VXLAN=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_DUMMY=y" >> ./common/arch/arm64/configs/gki_defconfig
+          # Additional network features (missing)
+          echo "=== Adding Additional Network Features ==="
+          add_config "CONFIG_MACVLAN=y"
+          add_config "CONFIG_MACVTAP=y"
+          add_config "CONFIG_IPVLAN=y"
+          add_config "CONFIG_VXLAN=y"
+          add_config "CONFIG_DUMMY=y"
           
           # Memory and swap accounting
-          echo "CONFIG_SWAP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_ZSWAP=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "=== Adding Memory/Swap Support ==="
+          add_config "CONFIG_SWAP=y"
+          add_config "CONFIG_ZSWAP=y"
           
-          # Additional crypto support for encrypted networks (optional)
-          echo "CONFIG_CRYPTO=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CRYPTO_AEAD=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CRYPTO_GCM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CRYPTO_SEQIV=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CRYPTO_GHASH=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_XFRM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_XFRM_USER=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_XFRM_ALGO=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_INET_ESP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NETFILTER_XT_MATCH_BPF=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "=== Docker configuration complete! ==="
           
-          echo "Docker support configurations added successfully!"
+          # Show what we added for debugging
+          echo "=== Final defconfig preview (Docker-related configs) ==="
+          grep -E "(NAMESPACE|CGROUP|NETFILTER|BRIDGE|VETH|OVERLAY|IPVS|NFT_|POSIX_MQUEUE|SYSVIPC)" "$DEFCONFIG_FILE" | head -20
+      - name: Force Enable Critical Docker Configs
+        run: |
+          echo "Changing to configuration directory: $CONFIG..."
+          cd "$CONFIG/kernel_platform"
+          
+          echo "Force-enabling critical Docker configurations that might get filtered..."
+          
+          DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+          
+          # Force enable critical missing configs by ensuring they override any "is not set"
+          echo "=== Force enabling critical Docker configs ==="
+          
+          # Remove any "is not set" entries for critical Docker configs
+          sed -i '/# CONFIG_PID_NS is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_IPC_NS is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_USER_NS is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_CGROUP_DEVICE is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_CGROUP_PIDS is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_BRIDGE_NETFILTER is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_POSIX_MQUEUE is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_IP6_NF_NAT is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_IP6_NF_TARGET_MASQUERADE is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_NETFILTER_XT_MATCH_ADDRTYPE is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_NETFILTER_XT_MATCH_IPVS is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_CFS_BANDWIDTH is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_IP_VS is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_SECURITY_APPARMOR is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_NF_TABLES is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_IPVLAN is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_MACVLAN is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_VXLAN is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_BRIDGE_VLAN_FILTERING is not set/d' "$DEFCONFIG_FILE"
+          sed -i '/# CONFIG_BTRFS_FS is not set/d' "$DEFCONFIG_FILE"
+          
+          # Now append them at the end to ensure they're set
+          cat >> "$DEFCONFIG_FILE" << 'EOF'
+
+# ========== DOCKER CONTAINERIZATION SUPPORT ==========
+# Core namespace support (CRITICAL for Docker)
+CONFIG_NAMESPACES=y
+CONFIG_NET_NS=y
+CONFIG_PID_NS=y
+CONFIG_IPC_NS=y
+CONFIG_UTS_NS=y
+CONFIG_USER_NS=y
+CONFIG_TIME_NS=y
+
+# IPC Support (REQUIRED)
+CONFIG_POSIX_MQUEUE=y
+CONFIG_SYSVIPC=y
+CONFIG_SYSVIPC_SYSCTL=y
+
+# CGroups v2 support (CRITICAL for Docker)
+CONFIG_CGROUPS=y
+CONFIG_CGROUP_DEVICE=y
+CONFIG_CGROUP_PIDS=y
+CONFIG_CGROUP_PERF=y
+CONFIG_CGROUP_HUGETLB=y
+CONFIG_CFS_BANDWIDTH=y
+
+# Network CGroups (MISSING)
+CONFIG_NET_CLS_CGROUP=y
+CONFIG_CGROUP_NET_CLASSID=y
+
+# Netfilter support (MISSING CRITICAL ONES)
+CONFIG_BRIDGE_NETFILTER=y
+CONFIG_IP6_NF_NAT=y
+CONFIG_IP6_NF_TARGET_MASQUERADE=y
+CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
+CONFIG_NETFILTER_XT_MATCH_IPVS=y
+
+# IPVS load balancing (ALL MISSING)
+CONFIG_IP_VS=y
+CONFIG_IP_VS_NFCT=y
+CONFIG_IP_VS_PROTO_TCP=y
+CONFIG_IP_VS_PROTO_UDP=y
+CONFIG_IP_VS_RR=y
+
+# NFTables (MODERN NETFILTER - ALL MISSING)
+CONFIG_NF_TABLES=y
+CONFIG_NFT_CT=y
+CONFIG_NFT_FIB_IPV4=y
+CONFIG_NFT_FIB_IPV6=y
+CONFIG_NFT_FIB=y
+CONFIG_NFT_MASQ=y
+CONFIG_NFT_NAT=y
+
+# Container networking (MISSING)
+CONFIG_MACVLAN=y
+CONFIG_IPVLAN=y
+CONFIG_VXLAN=y
+CONFIG_BRIDGE_VLAN_FILTERING=y
+
+# AppArmor security (MISSING)
+CONFIG_SECURITY_APPARMOR=y
+
+# BTRFS filesystem (MISSING)
+CONFIG_BTRFS_FS=y
+CONFIG_BTRFS_FS_POSIX_ACL=y
+
+# ========== END DOCKER SUPPORT ==========
+EOF
+          
+          echo "Critical Docker configurations force-enabled!"
+          echo "=== Final config verification ==="
+          
+          # Check if critical configs are present
+          echo "Checking critical Docker configs in defconfig:"
+          grep -c "CONFIG_PID_NS=y\|CONFIG_IPC_NS=y\|CONFIG_USER_NS=y\|CONFIG_CGROUP_DEVICE=y\|CONFIG_BRIDGE_NETFILTER=y\|CONFIG_POSIX_MQUEUE=y" "$DEFCONFIG_FILE" || echo "Some configs might be missing!"
+          
+          echo "Defconfig size: $(wc -l < "$DEFCONFIG_FILE") lines"      
+      - name: Verify Docker Configuration Before Build
+        run: |
+          echo "Changing to configuration directory: $CONFIG..."
+          cd "$CONFIG/kernel_platform"
+          
+          echo "=== Verifying Docker configurations are present ==="
+          
+          # Check for critical missing configs from the Docker check
+          DEFCONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+          
+          echo "Checking for critical Docker configs..."
+          
+          missing_configs=""
+          
+          # Check each critical config
+          check_config() {
+            local config="$1"
+            if ! grep -q "^$config=y" "$DEFCONFIG_FILE"; then
+              echo "❌ MISSING: $config"
+              missing_configs="$missing_configs $config"
+            else
+              echo "✅ FOUND: $config"
+            fi
+          }
+          
+          echo "=== Core Namespace Support ==="
+          check_config "CONFIG_PID_NS"
+          check_config "CONFIG_IPC_NS"
+          check_config "CONFIG_USER_NS"
+          
+          echo "=== CGroups Support ==="
+          check_config "CONFIG_CGROUP_DEVICE"
+          check_config "CONFIG_CGROUP_PIDS"
+          check_config "CONFIG_CFS_BANDWIDTH"
+          
+          echo "=== IPC Support ==="
+          check_config "CONFIG_POSIX_MQUEUE"
+          
+          echo "=== Network Support ==="
+          check_config "CONFIG_BRIDGE_NETFILTER"
+          check_config "CONFIG_IP6_NF_NAT"
+          check_config "CONFIG_IP6_NF_TARGET_MASQUERADE"
+          check_config "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE"
+          
+          echo "=== Container Network Features ==="
+          check_config "CONFIG_IPVLAN"
+          check_config "CONFIG_MACVLAN"
+          check_config "CONFIG_VXLAN"
+          check_config "CONFIG_BRIDGE_VLAN_FILTERING"
+          
+          echo "=== IPVS Load Balancing ==="
+          check_config "CONFIG_IP_VS"
+          check_config "CONFIG_IP_VS_PROTO_TCP"
+          
+          echo "=== Security ==="
+          check_config "CONFIG_SECURITY_APPARMOR"
+          
+          echo "=== NFTables ==="
+          check_config "CONFIG_NF_TABLES"
+          check_config "CONFIG_NFT_NAT"
+          
+          echo "=== Storage ==="
+          check_config "CONFIG_BTRFS_FS"
+          
+          if [ -n "$missing_configs" ]; then
+            echo "❌ Some critical Docker configs are still missing: $missing_configs"
+            echo "This may indicate the kernel source doesn't support these features."
+            echo "Docker functionality may be limited."
+          else
+            echo "✅ All critical Docker configurations found!"
+          fi
+          
+          echo "=== Full defconfig size: $(wc -l < "$DEFCONFIG_FILE") lines ==="
       - name: Add BBR Support
         run: |
           echo "Changing to configuration directory: $CONFIG..."
